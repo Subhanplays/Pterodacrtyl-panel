@@ -1,0 +1,51 @@
+#!/bin/bash
+# Made by SubhanPlays
+# Cloudflare Tunnel Setup Script
+
+echo "🚀 Setting up Cloudflare Tunnel with SubhanPlays guide..."
+
+# Step 1: Download and install cloudflared
+curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared
+chmod +x cloudflared
+sudo mv cloudflared /usr/local/bin/
+
+echo "✅ cloudflared installed!"
+
+# Step 2: Login to Cloudflare
+echo "🌐 Please login to your Cloudflare account..."
+cloudflared tunnel login
+
+# Step 3: Create a new tunnel
+echo "🛠 Creating a new tunnel..."
+read -p "Enter a name for your tunnel: " TUNNEL_NAME
+cloudflared tunnel create "$TUNNEL_NAME"
+
+# Step 4: Configure the tunnel
+CONFIG_DIR="$HOME/.cloudflared"
+CONFIG_FILE="$CONFIG_DIR/config.yml"
+TUNNEL_ID=$(ls $CONFIG_DIR | grep .json | head -n1)
+
+echo "📄 Editing tunnel configuration..."
+mkdir -p $CONFIG_DIR
+
+cat <<EOF > $CONFIG_FILE
+tunnel: $TUNNEL_ID
+credentials-file: $CONFIG_DIR/$TUNNEL_ID
+
+ingress:
+  - hostname: <YOUR_DOMAIN>
+    service: http://localhost:80
+  - service: http_status:404
+EOF
+
+echo "✅ Tunnel configuration saved at $CONFIG_FILE"
+
+# Step 5: Route DNS
+read -p "Enter your domain for DNS routing: " DOMAIN
+cloudflared tunnel route dns "$TUNNEL_NAME" "$DOMAIN"
+
+# Step 6: Run the tunnel
+echo "🚀 Running the tunnel..."
+cloudflared tunnel run "$TUNNEL_NAME"
+
+echo "🎉 Cloudflare Tunnel is now running! Access your service via $DOMAIN"
